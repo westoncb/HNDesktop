@@ -2,65 +2,85 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
-import javafx.application.Platform
 import javax.swing.*
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.io.InputStreamReader
 import javax.swing.UIManager
-import javax.swing.plaf.metal.DefaultMetalTheme
-import javax.swing.plaf.metal.MetalLookAndFeel
-import sun.jvm.hotspot.utilities.soql.SOQLEngine.getEngine
-import javafx.scene.Scene
-import javafx.scene.web.WebView
-import javafx.embed.swing.JFXPanel
 import java.awt.*
 import java.util.*
-import javax.swing.border.BevelBorder
+import javax.swing.event.ListSelectionEvent
+import javax.swing.plaf.metal.DefaultMetalTheme
+import javax.swing.plaf.metal.MetalLookAndFeel
 
 
 /**
  * Created by weston on 8/26/17.
  */
 
-val progressBar = JProgressBar(0, 30)
-
-fun main(args: Array<String>) {
-//    MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
-//    UIManager.setLookAndFeel(MetalLookAndFeel())
-    UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
-
-
-    val frame = JFrame("Hacker News")
-    val screenSize = Toolkit.getDefaultToolkit().screenSize;
-    frame.setSize((screenSize.width*0.6f).toInt(), (screenSize.height*0.8f).toInt())
-
-    val contentPane = JPanel()
-    contentPane.layout = BoxLayout(contentPane, BoxLayout.Y_AXIS)
-
-    progressBar.preferredSize = Dimension(300, 100)
-    progressBar.minimumSize = Dimension(300, 100)
-    progressBar.maximumSize = Dimension(300, 100)
-    progressBar.value = 0
-//    progressBar.isStringPainted = true
-    contentPane.add(progressBar)
-
-    val scroller = JScrollPane(contentPane)
-    scroller.verticalScrollBar.unitIncrement = 16
-    frame.contentPane.add(scroller)
-
-    frame.setLocation(screenSize.width / 2 - frame.size.width / 2, screenSize.height / 2 - frame.size.height / 2)
-
-    frame.isVisible = true
-    frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
-
-    val stories = getFrontPageStories()
-
-    contentPane.remove(progressBar)
-
-    for (story in stories) {
-        contentPane.add(getStoryPanel(story))
+class App {
+    companion object {
+        init {
+            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
+            UIManager.setLookAndFeel(MetalLookAndFeel())
+//            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
+        }
     }
+
+    val progressBar = JProgressBar(0, 30)
+    var contentPane = JPanel()
+    var storyControlPanel: JPanel = JPanel()
+    var storyPanel: JPanel = JPanel()
+
+    val listModel = DefaultListModel<Story>()
+    val storyList = JList(listModel)
+
+    val userLabel = JLabel()
+    val pointsLabel = JLabel()
+    val storyTimeLabel = JLabel()
+    val commentCountLabel = JLabel()
+    val contentToggleButton = JButton("View Page")
+
+    init {
+
+        val frame = JFrame("Hacker News")
+        val screenSize = Toolkit.getDefaultToolkit().screenSize
+        val frameSize = Dimension((screenSize.width*0.90f).toInt(), (screenSize.height*0.85f).toInt())
+        frame.size = frameSize
+
+        frame.contentPane = contentPane
+        contentPane.preferredSize = frameSize
+
+        contentPane.layout = GridBagLayout()
+        val c = GridBagConstraints()
+        c.anchor = GridBagConstraints.CENTER
+
+        progressBar.preferredSize = Dimension(400, 25)
+        progressBar.isStringPainted = true
+
+        //Just add so the display updates. Not sure why, but
+        //it delays showing the progress bar if we don't do this.
+        contentPane.add(JLabel(""), c)
+        
+        c.gridy = 1
+        contentPane.add(progressBar, c)
+        progressBar.value = 0
+
+        frame.setLocation(screenSize.width / 2 - frame.size.width / 2, screenSize.height / 2 - frame.size.height / 2)
+        frame.pack()
+
+        frame.isVisible = true
+        frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+
+        val stories = getFrontPageStories()
+
+        contentPane = JPanel(BorderLayout())
+        frame.contentPane = contentPane
+
+        val mainPanel = getMainPanel(stories)
+        contentPane.add(mainPanel)
+
+        storyList.selectedIndex = 0
 
 //    val jfxPanel = JFXPanel()
 //    frame.add(jfxPanel)
@@ -71,87 +91,151 @@ fun main(args: Array<String>) {
 //        webView.engine.load("https://news.ycombinator.com/")
 //    })
 
-    frame.revalidate()
-}
-
-fun getStoryPanel(story : JsonObject) : JPanel {
-    val title = story.get("title").asString
-    val points = story.get("score").asInt
-    val time = Date(story.get("time").asLong * 1000).toString()
-    val kids = story.get("kids")?.asJsonArray
-    val numKids = kids?.size()
-    val user = story.get("by").asString
-
-    val panel = JPanel(GridBagLayout())
-    val titleBorder = BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), title)
-    panel.border = BorderFactory.createCompoundBorder(titleBorder, BorderFactory.createEmptyBorder(4, 4, 4, 4))
-
-    val titleButton = JButton("Go")
-    val discussButton = JButton("Discuss ($numKids)")
-    val pointsLabel = JLabel("$points points")
-    val userButton = JButton(" by $user")
-    val timeLabel = JLabel("$time")
-
-    val c = GridBagConstraints()
-    c.anchor = GridBagConstraints.FIRST_LINE_START
-    c.fill = GridBagConstraints.HORIZONTAL
-
-    c.gridx = 0
-    c.gridy = 0
-    panel.add(titleButton, c)
-    c.gridx = 1
-    panel.add(discussButton, c)
-    c.gridx = 2
-    panel.add(userButton, c)
-    c.gridy = 1
-    c.gridx = 0
-    c.anchor = GridBagConstraints.LAST_LINE_START
-    panel.add(pointsLabel, c)
-    c.gridx = 1
-    c.anchor = GridBagConstraints.LAST_LINE_END
-    panel.add(timeLabel, c)
-
-    return panel
-}
-
-fun getFrontPageStories() : ArrayList<JsonObject> {
-    val storyIDs = treeFromURL("https://hacker-news.firebaseio.com/v0/topstories.json")
-    val iter = storyIDs.asJsonArray.iterator()
-    val stories = ArrayList<JsonObject>()
-
-    var count : Int = 0
-    while (iter.hasNext()) {
-        val id = (iter.next() as JsonPrimitive).asInt
-
-        val story = getStory(id)
-
-        stories.add(story.asJsonObject)
-        count++
-        progressBar.value = count
-
-        if (count > 29)
-            break
+        frame.revalidate()
     }
 
-    return stories
+    fun getMainPanel(storyNodes: ArrayList<JsonObject>) : JComponent {
+        val stories = storyNodes.map { storyNode -> Story(storyNode) }
+
+        val def = DefaultListCellRenderer()
+        val renderer = ListCellRenderer<Story> { list, value, index, isSelected, cellHasFocus ->
+            def.getListCellRendererComponent(list, value.title, index, isSelected, cellHasFocus)
+        }
+
+        storyList.cellRenderer = renderer
+        storyList.addListSelectionListener { e: ListSelectionEvent? ->
+            if (e != null) {
+                if (!e.valueIsAdjusting) {
+                    changeActiveStory(stories[storyList.selectedIndex])
+                }
+            }
+        }
+
+        for (story in stories) {
+            listModel.addElement(story)
+        }
+
+        val mainRightPane = buildMainRightPanel()
+
+        val storyScroller = JScrollPane(storyList)
+        storyScroller.verticalScrollBar.unitIncrement = 16
+
+        val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, storyScroller, mainRightPane)
+
+        return splitPane
+    }
+
+    fun changeActiveStory(story: Story) {
+        userLabel.text = "Posted by: ${story.user}"
+        pointsLabel.text = "Points: ${story.points}"
+        storyTimeLabel.text = "Time: ${story.time}"
+        commentCountLabel.text = "Comments: ${story.numKids}"
+    }
+
+    fun buildMainRightPanel() : JPanel {
+        val root = JPanel()
+        root.layout = BorderLayout()
+
+        storyControlPanel = JPanel(GridLayout(1, 2))
+        storyControlPanel.border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
+
+        val leftPanel = JPanel()
+        val rightPanel = JPanel(BorderLayout())
+
+        storyControlPanel.add(leftPanel)
+        storyControlPanel.add(rightPanel)
+
+        leftPanel.layout = BoxLayout(leftPanel, BoxLayout.Y_AXIS)
+        leftPanel.add(pointsLabel)
+        leftPanel.add(commentCountLabel)
+        leftPanel.add(userLabel)
+        leftPanel.add(storyTimeLabel)
+
+        rightPanel.add(contentToggleButton, BorderLayout.EAST)
+
+        storyPanel = JPanel()
+        storyPanel.add(JLabel(""))
+
+        root.add(storyControlPanel, BorderLayout.NORTH)
+
+        root.add(storyPanel, BorderLayout.CENTER)
+
+        return root
+    }
+
+    //For testing—doesn't download anything
+    fun getFrontPageStories2() : ArrayList<JsonObject> {
+        val stories = ArrayList<JsonObject>()
+
+        for (i in 0..30) {
+            stories.add(getStory2(i).asJsonObject)
+            progressBar.value = i
+        }
+
+        return stories
+    }
+
+    fun getFrontPageStories() : ArrayList<JsonObject> {
+        val storyIDs = treeFromURL("https://hacker-news.firebaseio.com/v0/topstories.json")
+        val iter = storyIDs.asJsonArray.iterator()
+        val stories = ArrayList<JsonObject>()
+
+        var count : Int = 0
+        while (iter.hasNext()) {
+            val id = (iter.next() as JsonPrimitive).asInt
+
+            val story = getStory(id)
+
+            stories.add(story.asJsonObject)
+            count++
+            progressBar.value = count
+
+            if (count > 29)
+                break
+        }
+
+        return stories
+    }
+
+    fun getStory(id: Int) : JsonElement {
+        val story = treeFromURL("https://hacker-news.firebaseio.com/v0/item/$id.json")
+
+        return story
+    }
+
+    //For testing—doesn't download anything
+    fun getStory2(id: Int) : JsonElement {
+        val story = treeFromURL2("https://hacker-news.firebaseio.com/v0/item/$id.json")
+
+        return story
+    }
+
+    fun treeFromURL(url: String) : JsonElement {
+        val url = URL(url)
+        val connection = (url.openConnection()) as HttpsURLConnection
+
+        val reader = InputStreamReader(connection?.inputStream)
+
+        val parser = JsonParser()
+        val element = parser.parse(reader)
+
+        reader.close()
+
+        return element
+    }
+
+    //For testing—doesn't download anything
+    fun treeFromURL2(url: String) : JsonElement {
+
+
+        val parser = JsonParser()
+        val element = parser.parse("{\"by\":\"madmork\",\"descendants\":39,\"id\":15111862,\"kids\":[15112163,15112064,15112298,15112289,15112028,15112075,15112092,15112065,15112050,15111894,15111981,15112003,15112149,15112150,15112282],\"score\":62,\"time\":1503857171,\"title\":\"Jumping Ship: Signs It's Time to Quit\",\"type\":\"story\",\"url\":\"https://www.madmork.com/single-post/2017/08/25/Jumping-Ship-7-Signs-its-time-to-quit\"}")
+
+
+        return element
+    }
 }
 
-fun getStory(id: Int) : JsonElement {
-    val story = treeFromURL("https://hacker-news.firebaseio.com/v0/item/$id.json")
-
-    return story
-}
-
-fun treeFromURL(url: String) : JsonElement {
-    val url = URL(url)
-    val connection = (url.openConnection()) as HttpsURLConnection
-
-    val reader = InputStreamReader(connection?.inputStream)
-
-    val parser = JsonParser()
-    val element = parser.parse(reader)
-
-    reader.close()
-
-    return element
+fun main(args: Array<String>) {
+    App()
 }
