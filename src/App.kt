@@ -2,6 +2,10 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
+import javafx.application.Platform
+import javafx.embed.swing.JFXPanel
+import javafx.scene.Scene
+import javafx.scene.web.WebView
 import javax.swing.*
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
@@ -41,6 +45,10 @@ class App {
     val commentCountLabel = JLabel()
     val contentToggleButton = JButton("View Page")
 
+    var commentTree = JTree()
+
+    val jfxPanel = JFXPanel()
+
     init {
 
         val frame = JFrame("Hacker News")
@@ -61,7 +69,7 @@ class App {
         //Just add so the display updates. Not sure why, but
         //it delays showing the progress bar if we don't do this.
         contentPane.add(JLabel(""), c)
-        
+
         c.gridy = 1
         contentPane.add(progressBar, c)
         progressBar.value = 0
@@ -82,20 +90,13 @@ class App {
 
         storyList.selectedIndex = 0
 
-//    val jfxPanel = JFXPanel()
-//    frame.add(jfxPanel)
-//
-//    Platform.runLater({
-//        val webView = WebView()
-//        jfxPanel.scene = Scene(webView)
-//        webView.engine.load("https://news.ycombinator.com/")
-//    })
-
         frame.revalidate()
     }
 
     fun getMainPanel(storyNodes: ArrayList<JsonObject>) : JComponent {
-        val stories = storyNodes.map { storyNode -> Story(storyNode) }
+        val stories = storyNodes
+                .filter { it.get("type").asString.equals("story", true) }
+                .map { Story(it) }
 
         val def = DefaultListCellRenderer()
         val renderer = ListCellRenderer<Story> { list, value, index, isSelected, cellHasFocus ->
@@ -117,6 +118,9 @@ class App {
 
         val mainRightPane = buildMainRightPanel()
 
+
+        mainRightPane.add(jfxPanel)
+
         val storyScroller = JScrollPane(storyList)
         storyScroller.verticalScrollBar.unitIncrement = 16
 
@@ -129,7 +133,36 @@ class App {
         userLabel.text = "Posted by: ${story.user}"
         pointsLabel.text = "Points: ${story.points}"
         storyTimeLabel.text = "Time: ${story.time}"
-        commentCountLabel.text = "Comments: ${story.numKids}"
+        commentCountLabel.text = "Comments: ${story.totalComments}"
+
+//        Platform.runLater({
+//            val webView = WebView()
+//            jfxPanel.scene = Scene(webView)
+//            webView.engine.load(story.url)
+//        })
+
+        storyPanel.add(getCommentsPanel())
+        loadComments(story)
+    }
+
+    fun loadComments(story: Story) {
+
+    }
+
+    fun commentArrived(comment: JsonObject) {
+        //construct comment object
+        //update comment count
+        //use associated address to add node to tree model
+    }
+
+    fun getCommentsPanel() : JPanel {
+        val panel = JPanel()
+        commentTree = JTree()
+        panel.add(commentTree)
+
+        //set up custom cell renderer
+
+        return panel
     }
 
     fun buildMainRightPanel() : JPanel {
