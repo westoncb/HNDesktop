@@ -2,20 +2,22 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
-import javafx.application.Platform
 import javafx.embed.swing.JFXPanel
-import javafx.scene.Scene
-import javafx.scene.web.WebView
 import javax.swing.*
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
 import java.io.InputStreamReader
 import javax.swing.UIManager
 import java.awt.*
-import java.util.*
 import javax.swing.event.ListSelectionEvent
 import javax.swing.plaf.metal.DefaultMetalTheme
 import javax.swing.plaf.metal.MetalLookAndFeel
+import javax.swing.tree.DefaultMutableTreeNode
+import javax.swing.JTree
+import javax.swing.event.TreeModelEvent
+import javax.swing.event.TreeModelListener
+import javax.swing.tree.DefaultTreeModel
+import kotlin.collections.ArrayList
 
 
 /**
@@ -46,6 +48,7 @@ class App {
     val contentToggleButton = JButton("View Page")
 
     var commentTree = JTree()
+    var commentTreeRoot = DefaultMutableTreeNode()
 
     val jfxPanel = JFXPanel()
 
@@ -118,8 +121,7 @@ class App {
 
         val mainRightPane = buildMainRightPanel()
 
-
-        mainRightPane.add(jfxPanel)
+//        mainRightPane.add(jfxPanel)
 
         val storyScroller = JScrollPane(storyList)
         storyScroller.verticalScrollBar.unitIncrement = 16
@@ -141,24 +143,69 @@ class App {
 //            webView.engine.load(story.url)
 //        })
 
+        storyPanel.removeAll()
         storyPanel.add(getCommentsPanel())
         loadComments(story)
     }
 
     fun loadComments(story: Story) {
-
+        Thread(Runnable {
+            if (story.kids != null) {
+            var index = 0
+            val iter = story.kids.iterator()
+            while(iter.hasNext()) {
+                val commentId = iter.next().asInt
+                val address = "$index"
+                loadCommentAux(Comment(getItem(commentId), address), address)
+                index++
+            }
+        } }).start()
     }
 
-    fun commentArrived(comment: JsonObject) {
-        //construct comment object
-        //update comment count
-        //use associated address to add node to tree model
+    fun loadCommentAux(comment: Comment, treeAddress: String) {
+        commentArrived(comment, treeAddress)
+
+        if (comment.kids != null) {
+            var index = 0
+            val iter = comment.kids.iterator()
+            while(iter.hasNext()) {
+                val commentId = iter.next().asInt
+                val address = treeAddress+";$index"
+                loadCommentAux(Comment(getItem(commentId), address), address)
+                index++
+            }
+        }
+    }
+
+    fun commentArrived(comment: Comment, treeAddress: String) {
+        addNodeAtAddress(DefaultMutableTreeNode(comment.text), comment.treeAddress)
+    }
+
+    fun addNodeAtAddress(node: DefaultMutableTreeNode, address: String) {
+        val addressArray = address.split(";")
+        var parentNode = commentTreeRoot
+        for ((index, addressComponent) in addressArray.withIndex()) {
+
+            // Don't use the last component in the addressArray since that's the index
+            // which the child should be added at
+            if (index < addressArray.size - 1) {
+                parentNode = parentNode.getChildAt(Integer.parseInt("$addressComponent")) as DefaultMutableTreeNode
+            }
+
+        }
+
+        (commentTree.model as DefaultTreeModel).insertNodeInto(node, parentNode, Integer.parseInt(addressArray[addressArray.size-1]))
     }
 
     fun getCommentsPanel() : JPanel {
-        val panel = JPanel()
-        commentTree = JTree()
-        panel.add(commentTree)
+        val panel = JPanel(BorderLayout())
+        commentTreeRoot = DefaultMutableTreeNode("User comments")
+        commentTree = JTree(commentTreeRoot)
+        commentTree.getModel().addTreeModelListener(ExpandTreeListener(commentTree))
+        val treeScroller = JScrollPane(commentTree)
+        treeScroller.verticalScrollBar.unitIncrement = 16
+        treeScroller.horizontalScrollBar.unitIncrement = 16
+        panel.add(treeScroller, BorderLayout.CENTER)
 
         //set up custom cell renderer
 
@@ -186,8 +233,7 @@ class App {
 
         rightPanel.add(contentToggleButton, BorderLayout.EAST)
 
-        storyPanel = JPanel()
-        storyPanel.add(JLabel(""))
+        storyPanel = JPanel(BorderLayout())
 
         root.add(storyControlPanel, BorderLayout.NORTH)
 
@@ -217,7 +263,7 @@ class App {
         while (iter.hasNext()) {
             val id = (iter.next() as JsonPrimitive).asInt
 
-            val story = getStory(id)
+            val story = getItem(id)
 
             stories.add(story.asJsonObject)
             count++
@@ -230,10 +276,10 @@ class App {
         return stories
     }
 
-    fun getStory(id: Int) : JsonElement {
-        val story = treeFromURL("https://hacker-news.firebaseio.com/v0/item/$id.json")
+    fun getItem(id: Int) : JsonObject {
+        val item = treeFromURL("https://hacker-news.firebaseio.com/v0/item/$id.json")
 
-        return story
+        return item.asJsonObject
     }
 
     //For testing—doesn't download anything
@@ -266,6 +312,26 @@ class App {
 
 
         return element
+    }
+
+    class ExpandTreeListener(theTree: JTree) : TreeModelListener {
+
+        val tree = theTree
+
+        override fun treeStructureChanged(e: TreeModelEvent?) {
+        }
+
+        override fun treeNodesChanged(e: TreeModelEvent?) {
+        }
+
+        override fun treeNodesRemoved(e: TreeModelEvent?) {
+        }
+
+        override fun treeNodesInserted(e: TreeModelEvent?) {
+            if (e != null) {
+                this.tree.expandPath(e.treePath)
+            }
+        }
     }
 }
 
