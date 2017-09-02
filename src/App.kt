@@ -16,6 +16,7 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.JTree
 import javax.swing.event.TreeModelEvent
 import javax.swing.event.TreeModelListener
+import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.DefaultTreeModel
 import kotlin.collections.ArrayList
 
@@ -201,6 +202,7 @@ class App {
         val panel = JPanel(BorderLayout())
         commentTreeRoot = DefaultMutableTreeNode("User comments")
         commentTree = JTree(commentTreeRoot)
+        commentTree.cellRenderer = CommentCellRenderer()
         commentTree.getModel().addTreeModelListener(ExpandTreeListener(commentTree))
         val treeScroller = JScrollPane(commentTree)
         treeScroller.verticalScrollBar.unitIncrement = 16
@@ -312,6 +314,29 @@ class App {
 
 
         return element
+    }
+
+    class CommentCellRenderer : DefaultTreeCellRenderer() {
+        override fun getTreeCellRendererComponent(tree: JTree?, value: Any?, sel: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): Component? {
+            super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
+
+            val panel = JPanel(BorderLayout())
+            val mainTextLabel = JLabel(value.toString())
+            mainTextLabel.maximumSize = Dimension(500, 10000)
+            mainTextLabel.preferredSize = Dimension(500, this.preferredSize.height)
+            panel.add(mainTextLabel, BorderLayout.CENTER)
+
+            panel.preferredSize = Dimension(500, this.preferredSize.height)
+            panel.maximumSize = Dimension(500, 10000)
+            panel.background = Color(220, 220, 220)
+
+            return panel
+        }
+//        \
+//        {
+//
+//
+//        }
     }
 
     class ExpandTreeListener(theTree: JTree) : TreeModelListener {
