@@ -27,7 +27,7 @@ import javax.swing.text.html.HTMLEditorKit
  * Created by weston on 8/26/17.
  */
 
-class App {
+class App : PubSub.Subscriber {
     companion object {
         init {
 //            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
@@ -101,6 +101,8 @@ class App {
         storyList.setCellRenderer(StoryCellRenderer())
 
         frame.revalidate()
+
+        PubSub.subscribe(PubSub.STORY_ICON_LOADED, this)
     }
 
     fun getMainPanel(storyNodes: ArrayList<JsonObject>) : JComponent {
@@ -153,6 +155,12 @@ class App {
         storyPanel.removeAll()
         storyPanel.add(getCommentsPanel(story))
         loadComments(story)
+    }
+
+    override fun messageArrived(eventName: String, data: Any?) {
+        if (eventName == PubSub.STORY_ICON_LOADED) {
+            storyList.repaint()
+        }
     }
 
     fun loadComments(story: Story) {
@@ -346,8 +354,7 @@ class App {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JComponent
 
             this.border = BorderFactory.createEmptyBorder(3, 3, 3, 3)
-            val laf1Icon = UIManager.getIcon("FileView.fileIcon")
-            this.icon = laf1Icon
+            this.icon = (value as Story).favicon
 
             return this
         }
@@ -391,9 +398,11 @@ class App {
         val tree = theTree
 
         override fun treeStructureChanged(e: TreeModelEvent?) {
+            println("clickin")
         }
 
         override fun treeNodesChanged(e: TreeModelEvent?) {
+
         }
 
         override fun treeNodesRemoved(e: TreeModelEvent?) {
