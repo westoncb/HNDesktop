@@ -19,6 +19,8 @@ import javax.swing.event.TreeModelListener
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.DefaultTreeModel
 import kotlin.collections.ArrayList
+import javax.swing.text.html.HTMLDocument
+import javax.swing.text.html.HTMLEditorKit
 
 
 /**
@@ -200,16 +202,14 @@ class App {
 
     fun getCommentsPanel() : JPanel {
         val panel = JPanel(BorderLayout())
-        commentTreeRoot = DefaultMutableTreeNode("User comments")
+        commentTreeRoot = DefaultMutableTreeNode("Comments")
         commentTree = JTree(commentTreeRoot)
         commentTree.cellRenderer = CommentCellRenderer()
-        commentTree.getModel().addTreeModelListener(ExpandTreeListener(commentTree))
+        commentTree.model.addTreeModelListener(ExpandTreeListener(commentTree))
         val treeScroller = JScrollPane(commentTree)
         treeScroller.verticalScrollBar.unitIncrement = 16
         treeScroller.horizontalScrollBar.unitIncrement = 16
         panel.add(treeScroller, BorderLayout.CENTER)
-
-        //set up custom cell renderer
 
         return panel
     }
@@ -320,23 +320,33 @@ class App {
         override fun getTreeCellRendererComponent(tree: JTree?, value: Any?, sel: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): Component? {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
 
-            val panel = JPanel(BorderLayout())
-            val mainTextLabel = JLabel(value.toString())
-            mainTextLabel.maximumSize = Dimension(500, 10000)
-            mainTextLabel.preferredSize = Dimension(500, this.preferredSize.height)
-            panel.add(mainTextLabel, BorderLayout.CENTER)
+            var text = ""
 
-            panel.preferredSize = Dimension(500, this.preferredSize.height)
-            panel.maximumSize = Dimension(500, 10000)
-            panel.background = Color(220, 220, 220)
+            var index = 0
+            val words = value.toString().split(" ")
+            for (word in words) {
+                if (word.indexOf("<br>") != -1 || word.indexOf("</p>") != -1 || word.indexOf("</pre>") != -1) {
+                    index = 0
+                } else if (index > 20) {
+                    index = 0
+                    text += "<br>"
+                }
+                text += " " + word
 
-            return panel
+                index++
+            }
+
+            val textPane = JTextPane()
+            textPane.contentType = "text/html"
+            textPane.isEditable = false
+            val doc = textPane.document as HTMLDocument
+            val editorKit = textPane.editorKit as HTMLEditorKit
+            editorKit.insertHTML(doc, doc.length, text, 0, 0, null)
+            textPane.background = Color(242, 242, 255)
+            textPane.border = BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(5, 5, 5, 5))
+
+            return textPane
         }
-//        \
-//        {
-//
-//
-//        }
     }
 
     class ExpandTreeListener(theTree: JTree) : TreeModelListener {
@@ -354,7 +364,9 @@ class App {
 
         override fun treeNodesInserted(e: TreeModelEvent?) {
             if (e != null) {
-                this.tree.expandPath(e.treePath)
+                if (e.treePath.pathCount == 1) {
+                    this.tree.expandPath(e.treePath)
+                }
             }
         }
     }
