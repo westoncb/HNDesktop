@@ -40,6 +40,7 @@ class App {
     var contentPane = JPanel()
     var storyControlPanel: JPanel = JPanel()
     var storyPanel: JPanel = JPanel()
+    var mainRightPane = JPanel()
 
     val listModel = DefaultListModel<Story>()
     val storyList = JList(listModel)
@@ -52,6 +53,8 @@ class App {
 
     var commentTree = JTree()
     var commentTreeRoot = DefaultMutableTreeNode()
+    val commentsProgressBar = JProgressBar()
+    var loadedCommentCount = 0
 
     val jfxPanel = JFXPanel()
 
@@ -122,7 +125,7 @@ class App {
             listModel.addElement(story)
         }
 
-        val mainRightPane = buildMainRightPanel()
+        mainRightPane = buildMainRightPanel()
 
 //        mainRightPane.add(jfxPanel)
 
@@ -147,7 +150,7 @@ class App {
 //        })
 
         storyPanel.removeAll()
-        storyPanel.add(getCommentsPanel())
+        storyPanel.add(getCommentsPanel(story))
         loadComments(story)
     }
 
@@ -182,6 +185,14 @@ class App {
 
     fun commentArrived(comment: Comment, treeAddress: String) {
         addNodeAtAddress(DefaultMutableTreeNode(comment.text), comment.treeAddress)
+
+        commentsProgressBar.value = ++loadedCommentCount
+
+        if (loadedCommentCount == commentsProgressBar.maximum) {
+            val parent = commentsProgressBar.parent
+            parent.remove(commentsProgressBar)
+            parent.revalidate()
+        }
     }
 
     fun addNodeAtAddress(node: DefaultMutableTreeNode, address: String) {
@@ -200,7 +211,9 @@ class App {
         (commentTree.model as DefaultTreeModel).insertNodeInto(node, parentNode, Integer.parseInt(addressArray[addressArray.size-1]))
     }
 
-    fun getCommentsPanel() : JPanel {
+    fun getCommentsPanel(story: Story) : JPanel {
+        loadedCommentCount = 0
+
         val panel = JPanel(BorderLayout())
         commentTreeRoot = DefaultMutableTreeNode("Comments")
         commentTree = JTree(commentTreeRoot)
@@ -210,6 +223,16 @@ class App {
         treeScroller.verticalScrollBar.unitIncrement = 16
         treeScroller.horizontalScrollBar.unitIncrement = 16
         panel.add(treeScroller, BorderLayout.CENTER)
+
+        var totalComments = 0
+
+        if (story.totalComments != null) {
+            totalComments = story.totalComments
+        }
+
+        commentsProgressBar.minimum = 0
+        commentsProgressBar.maximum = totalComments
+        panel.add(commentsProgressBar, BorderLayout.NORTH)
 
         return panel
     }
