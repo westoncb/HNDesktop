@@ -6,4 +6,8 @@ import com.google.gson.JsonObject
 
 class Story : Item {
     constructor(storyNode: JsonObject) : super(storyNode)
+
+    override fun toString(): String {
+        return this.title ?: "--missing title--"
+    }
 }

@@ -30,9 +30,9 @@ import javax.swing.text.html.HTMLEditorKit
 class App {
     companion object {
         init {
-            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
-            UIManager.setLookAndFeel(MetalLookAndFeel())
-//            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
+//            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
+//            UIManager.setLookAndFeel(MetalLookAndFeel())
+            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
         }
     }
 
@@ -53,7 +53,7 @@ class App {
 
     var commentTree = JTree()
     var commentTreeRoot = DefaultMutableTreeNode()
-    val commentsProgressBar = JProgressBar()
+    var commentsProgressBar = JProgressBar()
     var loadedCommentCount = 0
 
     val jfxPanel = JFXPanel()
@@ -98,6 +98,7 @@ class App {
         contentPane.add(mainPanel)
 
         storyList.selectedIndex = 0
+        storyList.setCellRenderer(StoryCellRenderer())
 
         frame.revalidate()
     }
@@ -230,6 +231,7 @@ class App {
             totalComments = story.totalComments
         }
 
+        commentsProgressBar = JProgressBar()
         commentsProgressBar.minimum = 0
         commentsProgressBar.maximum = totalComments
         panel.add(commentsProgressBar, BorderLayout.NORTH)
@@ -337,6 +339,18 @@ class App {
 
 
         return element
+    }
+
+    class StoryCellRenderer : DefaultListCellRenderer() {
+        override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int, isSelected: Boolean, cellHasFocus: Boolean): Component {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JComponent
+
+            this.border = BorderFactory.createEmptyBorder(3, 3, 3, 3)
+            val laf1Icon = UIManager.getIcon("FileView.fileIcon")
+            this.icon = laf1Icon
+
+            return this
+        }
     }
 
     class CommentCellRenderer : DefaultTreeCellRenderer() {
