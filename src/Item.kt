@@ -21,4 +21,8 @@ open class Item(itemNode: JsonObject) {
     val user = itemNode.get("by")?.asString
     val url = itemNode.get("url")?.asString
     val totalComments = itemNode.get("descendants")?.asInt
+
+    override fun toString(): String {
+        return "ID: " + id + ", Type: " + type + ", Title: " + title + ", dead: " + dead + ", kids: " + numKids
+    }
 }
