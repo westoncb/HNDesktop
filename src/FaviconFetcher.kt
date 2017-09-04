@@ -9,7 +9,7 @@ import javax.swing.Icon
 import javax.swing.ImageIcon
 
 object FaviconFetcher {
-    fun getFavicon(url: String) : Icon? {
+    fun getFavicon(url: String) : Image? {
         if (url != null) {
 
             var href = getHREFFromIndexPage(url)
@@ -73,7 +73,7 @@ object FaviconFetcher {
         return protocolAndDomain
     }
 
-    fun iconFromURL(urlString: String) : Icon? {
+    fun iconFromURL(urlString: String) : Image? {
         var image: Image? = null
 
         try {
@@ -91,13 +91,13 @@ object FaviconFetcher {
         }
 
         if (image != null) {
-            return getScaledImage(image, 16, 16)
+            return image
         } else {
             return null
         }
     }
 
-    private fun getScaledImage(srcImg: Image, w: Int, h: Int): ImageIcon {
+    fun getScaledImage(srcImg: Image, w: Int, h: Int): Image {
         val resizedImg = BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
         val g2 = resizedImg.createGraphics()
 
@@ -105,6 +105,6 @@ object FaviconFetcher {
         g2.drawImage(srcImg, 0, 0, w, h, null)
         g2.dispose()
 
-        return ImageIcon(resizedImg)
+        return resizedImg
     }
 }

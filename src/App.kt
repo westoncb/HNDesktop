@@ -10,12 +10,12 @@ import java.io.InputStreamReader
 import javax.swing.UIManager
 import java.awt.*
 import javax.swing.event.ListSelectionEvent
-import javax.swing.plaf.metal.DefaultMetalTheme
-import javax.swing.plaf.metal.MetalLookAndFeel
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.JTree
 import javax.swing.event.TreeModelEvent
 import javax.swing.event.TreeModelListener
+import javax.swing.plaf.metal.DefaultMetalTheme
+import javax.swing.plaf.metal.MetalLookAndFeel
 import javax.swing.tree.DefaultTreeCellRenderer
 import javax.swing.tree.DefaultTreeModel
 import kotlin.collections.ArrayList
@@ -30,15 +30,15 @@ import javax.swing.text.html.HTMLEditorKit
 class App : PubSub.Subscriber {
     companion object {
         init {
-//            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
-//            UIManager.setLookAndFeel(MetalLookAndFeel())
-            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
+            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
+            UIManager.setLookAndFeel(MetalLookAndFeel())
+//            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
         }
     }
 
     val progressBar = JProgressBar(0, 30)
     var contentPane = JPanel()
-    var storyControlPanel: JPanel = JPanel()
+    var storyControlPanel = JPanel()
     var storyPanel: JPanel = JPanel()
     var mainRightPane = JPanel()
 
@@ -48,8 +48,11 @@ class App : PubSub.Subscriber {
     val userLabel = JLabel()
     val pointsLabel = JLabel()
     val storyTimeLabel = JLabel()
+    val storyURLLabel = JLabel()
     val commentCountLabel = JLabel()
     val contentToggleButton = JButton("View Page")
+    var headlinePanel = JPanel()
+    var storyIconPanel = JLabel()
 
     var commentTree = JTree()
     var commentTreeRoot = DefaultMutableTreeNode()
@@ -103,6 +106,12 @@ class App : PubSub.Subscriber {
         frame.revalidate()
 
         PubSub.subscribe(PubSub.STORY_ICON_LOADED, this)
+
+        styleComponents()
+    }
+
+    fun styleComponents() {
+        this.storyURLLabel.foreground = Color(100, 100, 100)
     }
 
     fun getMainPanel(storyNodes: ArrayList<JsonObject>) : JComponent {
@@ -136,6 +145,7 @@ class App : PubSub.Subscriber {
         storyScroller.verticalScrollBar.unitIncrement = 16
 
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, storyScroller, mainRightPane)
+        splitPane.isOneTouchExpandable = true
 
         return splitPane
     }
@@ -145,6 +155,9 @@ class App : PubSub.Subscriber {
         pointsLabel.text = "Points: ${story.points}"
         storyTimeLabel.text = "Time: ${story.time}"
         commentCountLabel.text = "Comments: ${story.totalComments}"
+        if (story.url != null) {
+            storyURLLabel.text = story.url
+        }
 
 //        Platform.runLater({
 //            val webView = WebView()
@@ -154,16 +167,29 @@ class App : PubSub.Subscriber {
 
         storyPanel.removeAll()
         storyPanel.add(getCommentsPanel(story))
+        if (story.bigIcon != null) {
+            storyIconPanel.icon = ImageIcon(story.bigIcon)
+        } else {
+            storyIconPanel.icon = story.favicon
+        }
+        storyIconPanel.preferredSize = Dimension(storyIconPanel.icon.iconWidth+6, storyIconPanel.icon.iconHeight)
+        headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
+        storyIconPanel.border = BorderFactory.createEmptyBorder(0, 3, 0, 3)
+        storyControlPanel.repaint()
         loadComments(story)
     }
 
     override fun messageArrived(eventName: String, data: Any?) {
         if (eventName == PubSub.STORY_ICON_LOADED) {
             storyList.repaint()
+            storyControlPanel.repaint()
         }
     }
 
     fun loadComments(story: Story) {
+        if (story.totalComments == 0)
+            return
+
         Thread(Runnable {
             if (story.kids != null) {
             var index = 0
@@ -231,6 +257,10 @@ class App : PubSub.Subscriber {
         val treeScroller = JScrollPane(commentTree)
         treeScroller.verticalScrollBar.unitIncrement = 16
         treeScroller.horizontalScrollBar.unitIncrement = 16
+        if (!(UIManager.getLookAndFeel() is MetalLookAndFeel)) {
+            treeScroller.background = Color(242, 242, 242)
+            commentTree.background = Color(242, 242, 242)
+        }
         panel.add(treeScroller, BorderLayout.CENTER)
 
         var totalComments = 0
@@ -251,26 +281,27 @@ class App : PubSub.Subscriber {
         val root = JPanel()
         root.layout = BorderLayout()
 
-        storyControlPanel = JPanel(GridLayout(1, 2))
-        storyControlPanel.border = BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        storyControlPanel = JPanel(GridLayout(1, 1))
 
-        val leftPanel = JPanel()
-        val rightPanel = JPanel(BorderLayout())
+//        val leftPanel = JPanel()
+//        val rightPanel = JPanel(BorderLayout())
 
-        storyControlPanel.add(leftPanel)
-        storyControlPanel.add(rightPanel)
-
-        leftPanel.layout = BoxLayout(leftPanel, BoxLayout.Y_AXIS)
-        leftPanel.add(pointsLabel)
-        leftPanel.add(commentCountLabel)
-        leftPanel.add(userLabel)
-        leftPanel.add(storyTimeLabel)
-
-        rightPanel.add(contentToggleButton, BorderLayout.EAST)
+//        leftPanel.layout = BoxLayout(leftPanel, BoxLayout.Y_AXIS)
+//        leftPanel.add(pointsLabel)
+//        leftPanel.add(commentCountLabel)
+//        leftPanel.add(userLabel)
+//        leftPanel.add(storyTimeLabel)
 
         storyPanel = JPanel(BorderLayout())
 
         root.add(storyControlPanel, BorderLayout.NORTH)
+
+        headlinePanel = JPanel(BorderLayout())
+        headlinePanel.border = BorderFactory.createEmptyBorder(3, 3, 3, 3)
+        headlinePanel.add(storyIconPanel, BorderLayout.WEST)
+        headlinePanel.add(storyURLLabel, BorderLayout.CENTER)
+        headlinePanel.add(contentToggleButton, BorderLayout.EAST)
+        storyControlPanel.add(headlinePanel)
 
         root.add(storyPanel, BorderLayout.CENTER)
 
@@ -353,8 +384,12 @@ class App : PubSub.Subscriber {
         override fun getListCellRendererComponent(list: JList<*>?, value: Any?, index: Int, isSelected: Boolean, cellHasFocus: Boolean): Component {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JComponent
 
-            this.border = BorderFactory.createEmptyBorder(3, 3, 3, 3)
+            this.border = BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(3, 3, 3, 3))
+            if (!isSelected && !cellHasFocus) {
+                this.background = Color(242, 242, 242)
+            }
             this.icon = (value as Story).favicon
+            this.text = "<html><span style=\"color: #3f3f3f; font-size: 10px\">${value.title}</span><br><span style=\"color: #777777; font-size:8px;\"> ${value.points} points by ${value.user} at ${value.time} | ${value.totalComments} comments</span></html>"
 
             return this
         }
@@ -364,8 +399,9 @@ class App : PubSub.Subscriber {
         override fun getTreeCellRendererComponent(tree: JTree?, value: Any?, sel: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): Component? {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
 
+            //Insert linebreaks periodically since this seems to be the only way to limit
+            //the width of the html rendering JTextPane without also limiting the height
             var text = ""
-
             var index = 0
             val words = value.toString().split(" ")
             for (word in words) {
@@ -413,6 +449,28 @@ class App : PubSub.Subscriber {
                 if (e.treePath.pathCount == 1) {
                     this.tree.expandPath(e.treePath)
                 }
+            }
+        }
+    }
+
+    class IconPanel : JPanel {
+
+        constructor() : super()
+        constructor(layout: LayoutManager) : super(layout)
+
+        var icon: Image? = null
+
+        override fun paintComponent(g: Graphics?) {
+            super.paintComponent(g)
+
+            if (this.icon != null) {
+                val g2 = g as Graphics2D
+                val rule = AlphaComposite.SRC_OVER;
+                val oldComp = g2.composite
+                val comp = AlphaComposite.getInstance(rule , 1f )
+                g2.composite = comp
+                g2.drawImage(icon, 0, this.height/2 - icon!!.getHeight(null)/2, null)
+                g2.composite = oldComp
             }
         }
     }
