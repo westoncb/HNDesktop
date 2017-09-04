@@ -29,7 +29,6 @@ import javax.swing.text.html.HTMLEditorKit
 
 /**
  * TODO:
- *  +Comment meta data
  *  +Webview toggling
  *  User profiles
  *  (periodic?) Refresh
@@ -296,15 +295,6 @@ class App : PubSub.Subscriber {
 
         storyControlPanel = JPanel(GridLayout(1, 1))
 
-//        val leftPanel = JPanel()
-//        val rightPanel = JPanel(BorderLayout())
-
-//        leftPanel.layout = BoxLayout(leftPanel, BoxLayout.Y_AXIS)
-//        leftPanel.add(pointsLabel)
-//        leftPanel.add(commentCountLabel)
-//        leftPanel.add(userLabel)
-//        leftPanel.add(storyTimeLabel)
-
         storyPanel = JPanel(BorderLayout())
 
         root.add(storyControlPanel, BorderLayout.NORTH)
@@ -321,24 +311,12 @@ class App : PubSub.Subscriber {
         return root
     }
 
-    //For testing—doesn't download anything
-    fun getFrontPageStories2() : ArrayList<JsonObject> {
-        val stories = ArrayList<JsonObject>()
-
-        for (i in 0..30) {
-            stories.add(getStory2(i).asJsonObject)
-            progressBar.value = i
-        }
-
-        return stories
-    }
-
     fun getFrontPageStories() : ArrayList<JsonObject> {
         val storyIDs = treeFromURL("https://hacker-news.firebaseio.com/v0/topstories.json")
         val iter = storyIDs.asJsonArray.iterator()
         val stories = ArrayList<JsonObject>()
 
-        var count : Int = 0
+        var count = 0
         while (iter.hasNext()) {
             val id = (iter.next() as JsonPrimitive).asInt
 
@@ -361,13 +339,6 @@ class App : PubSub.Subscriber {
         return item.asJsonObject
     }
 
-    //For testing—doesn't download anything
-    fun getStory2(id: Int) : JsonElement {
-        val story = treeFromURL2("https://hacker-news.firebaseio.com/v0/item/$id.json")
-
-        return story
-    }
-
     fun treeFromURL(url: String) : JsonElement {
         val url = URL(url)
         val connection = (url.openConnection()) as HttpsURLConnection
@@ -378,17 +349,6 @@ class App : PubSub.Subscriber {
         val element = parser.parse(reader)
 
         reader.close()
-
-        return element
-    }
-
-    //For testing—doesn't download anything
-    fun treeFromURL2(url: String) : JsonElement {
-
-
-        val parser = JsonParser()
-        val element = parser.parse("{\"by\":\"madmork\",\"descendants\":39,\"id\":15111862,\"kids\":[15112163,15112064,15112298,15112289,15112028,15112075,15112092,15112065,15112050,15111894,15111981,15112003,15112149,15112150,15112282],\"score\":62,\"time\":1503857171,\"title\":\"Jumping Ship: Signs It's Time to Quit\",\"type\":\"story\",\"url\":\"https://www.madmork.com/single-post/2017/08/25/Jumping-Ship-7-Signs-its-time-to-quit\"}")
-
 
         return element
     }
@@ -466,7 +426,7 @@ class App : PubSub.Subscriber {
         val tree = theTree
 
         override fun treeStructureChanged(e: TreeModelEvent?) {
-            println("clickin")
+
         }
 
         override fun treeNodesChanged(e: TreeModelEvent?) {
@@ -481,28 +441,6 @@ class App : PubSub.Subscriber {
                 if (e.treePath.pathCount == 1) {
                     this.tree.expandPath(e.treePath)
                 }
-            }
-        }
-    }
-
-    class IconPanel : JPanel {
-
-        constructor() : super()
-        constructor(layout: LayoutManager) : super(layout)
-
-        var icon: Image? = null
-
-        override fun paintComponent(g: Graphics?) {
-            super.paintComponent(g)
-
-            if (this.icon != null) {
-                val g2 = g as Graphics2D
-                val rule = AlphaComposite.SRC_OVER;
-                val oldComp = g2.composite
-                val comp = AlphaComposite.getInstance(rule , 1f )
-                g2.composite = comp
-                g2.drawImage(icon, 0, this.height/2 - icon!!.getHeight(null)/2, null)
-                g2.composite = oldComp
             }
         }
     }
