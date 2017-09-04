@@ -121,7 +121,6 @@ class App : PubSub.Subscriber {
     fun styleComponents() {
         this.storyURLLabel.foreground = Color(100, 100, 100)
         this.storyList.background = Color(242, 242, 242)
-        this.commentTree.toggleClickCount = 1
 
         //Dimensions here are somewhat arbitrary, but if we want
         //equal priority given to both splitpane panels, they each
@@ -232,7 +231,7 @@ class App : PubSub.Subscriber {
     }
 
     fun commentArrived(comment: Comment, treeAddress: String) {
-        addNodeAtAddress(DefaultMutableTreeNode(comment.text), comment.treeAddress)
+        addNodeAtAddress(DefaultMutableTreeNode(comment), comment.treeAddress)
 
         commentsProgressBar.value = ++loadedCommentCount
 
@@ -265,6 +264,7 @@ class App : PubSub.Subscriber {
         val panel = JPanel(BorderLayout())
         commentTreeRoot = DefaultMutableTreeNode("Comments")
         commentTree = JTree(commentTreeRoot)
+        commentTree.toggleClickCount = 1
         commentTree.cellRenderer = CommentCellRenderer()
         commentTree.model.addTreeModelListener(ExpandTreeListener(commentTree))
         val treeScroller = JScrollPane(commentTree)
@@ -412,11 +412,27 @@ class App : PubSub.Subscriber {
         override fun getTreeCellRendererComponent(tree: JTree?, value: Any?, sel: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): Component? {
             super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus)
 
+            if ((value as DefaultMutableTreeNode).userObject !is Comment) {
+                return JLabel()
+            }
+
+            val comment = value.userObject as Comment
+            val panel = JPanel()
+            panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
+            panel.background = Color(200, 200, 255)
+
+            val metaDataLabel = JLabel(comment.user + " " + comment.time)
+            metaDataLabel.foreground = Color(60, 60, 60)
+            metaDataLabel.font = Font("Arial", Font.PLAIN, 11)
+            metaDataLabel.border = BorderFactory.createEmptyBorder(3, 3, 3, 3)
+
+            panel.add(metaDataLabel)
+
             //Insert linebreaks periodically since this seems to be the only way to limit
             //the width of the html rendering JTextPane without also limiting the height
             var text = ""
             var index = 0
-            val words = value.toString().split(" ")
+            val words = comment.text!!.split(" ")
             for (word in words) {
                 if (word.indexOf("<br>") != -1 || word.indexOf("</p>") != -1 || word.indexOf("</pre>") != -1) {
                     index = 0
@@ -437,8 +453,11 @@ class App : PubSub.Subscriber {
             editorKit.insertHTML(doc, doc.length, text, 0, 0, null)
             textPane.background = Color(242, 242, 255)
             textPane.border = BorderFactory.createCompoundBorder(BorderFactory.createEtchedBorder(), BorderFactory.createEmptyBorder(5, 5, 5, 5))
+            textPane.minimumSize = Dimension(textPane.size.width, textPane.size.height)
 
-            return textPane
+            panel.add(textPane)
+
+            return panel
         }
     }
 
