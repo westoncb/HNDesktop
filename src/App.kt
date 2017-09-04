@@ -113,6 +113,7 @@ class App : PubSub.Subscriber {
 
     fun styleComponents() {
         this.storyURLLabel.foreground = Color(100, 100, 100)
+        this.storyList.background = Color(242, 242, 242)
     }
 
     fun getMainPanel(storyNodes: ArrayList<JsonObject>) : JComponent {
@@ -390,7 +391,7 @@ class App : PubSub.Subscriber {
                 this.background = Color(242, 242, 242)
             }
             this.icon = (value as Story).favicon
-            this.text = "<html><span style=\"color: #3f3f3f; font-size: 10px\">${value.title}</span><br><span style=\"color: #777777; font-size:8px;\"> ${value.points} points by ${value.user} ${value.time} | ${value.totalComments} comments</span></html>"
+            this.text = "<html><span style=\"color: #333333; font-size: 10px\">${value.title}</span><br><span style=\"color: #777777; font-size:8px;\"> ${value.points} points by ${value.user} ${value.time} | ${value.totalComments} comments</span></html>"
 
             return this
         }
