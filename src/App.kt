@@ -3,6 +3,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
 import javafx.embed.swing.JFXPanel
+import org.ocpsoft.prettytime.PrettyTime
 import javax.swing.*
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
@@ -389,7 +390,7 @@ class App : PubSub.Subscriber {
                 this.background = Color(242, 242, 242)
             }
             this.icon = (value as Story).favicon
-            this.text = "<html><span style=\"color: #3f3f3f; font-size: 10px\">${value.title}</span><br><span style=\"color: #777777; font-size:8px;\"> ${value.points} points by ${value.user} at ${value.time} | ${value.totalComments} comments</span></html>"
+            this.text = "<html><span style=\"color: #3f3f3f; font-size: 10px\">${value.title}</span><br><span style=\"color: #777777; font-size:8px;\"> ${value.points} points by ${value.user} ${value.time} | ${value.totalComments} comments</span></html>"
 
             return this
         }
