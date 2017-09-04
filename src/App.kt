@@ -3,7 +3,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
 import javafx.embed.swing.JFXPanel
-import org.ocpsoft.prettytime.PrettyTime
 import javax.swing.*
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
@@ -28,11 +27,19 @@ import javax.swing.text.html.HTMLEditorKit
  * Created by weston on 8/26/17.
  */
 
+/**
+ * TODO:
+ *  +Comment meta data
+ *  +Webview toggling
+ *  User profiles
+ *  (periodic?) Refresh
+ */
+
 class App : PubSub.Subscriber {
     companion object {
         init {
-            MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
-            UIManager.setLookAndFeel(MetalLookAndFeel())
+                MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
+                UIManager.setLookAndFeel(MetalLookAndFeel())
 //            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
         }
     }
@@ -114,6 +121,12 @@ class App : PubSub.Subscriber {
     fun styleComponents() {
         this.storyURLLabel.foreground = Color(100, 100, 100)
         this.storyList.background = Color(242, 242, 242)
+        this.commentTree.toggleClickCount = 1
+
+        //Dimensions here are somewhat arbitrary, but if we want
+        //equal priority given to both splitpane panels, they each
+        //need minimum sizes
+        mainRightPane.minimumSize = Dimension(300, 200)
     }
 
     fun getMainPanel(storyNodes: ArrayList<JsonObject>) : JComponent {
@@ -141,9 +154,8 @@ class App : PubSub.Subscriber {
 
         mainRightPane = buildMainRightPanel()
 
-//        mainRightPane.add(jfxPanel)
-
         val storyScroller = JScrollPane(storyList)
+        storyScroller.minimumSize = Dimension(200, 200)
         storyScroller.verticalScrollBar.unitIncrement = 16
 
         val splitPane = JSplitPane(JSplitPane.HORIZONTAL_SPLIT, storyScroller, mainRightPane)
@@ -175,9 +187,8 @@ class App : PubSub.Subscriber {
             storyIconPanel.icon = story.favicon
         }
         storyIconPanel.preferredSize = Dimension(storyIconPanel.icon.iconWidth+6, storyIconPanel.icon.iconHeight)
-        headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
         storyIconPanel.border = BorderFactory.createEmptyBorder(0, 3, 0, 3)
-        storyControlPanel.repaint()
+        headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
         loadComments(story)
     }
 
