@@ -2,7 +2,10 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.JsonPrimitive
+import javafx.application.Platform
 import javafx.embed.swing.JFXPanel
+import javafx.scene.Scene
+import javafx.scene.web.WebView
 import javax.swing.*
 import java.net.URL
 import javax.net.ssl.HttpsURLConnection
@@ -68,6 +71,9 @@ class App : PubSub.Subscriber {
 
     val jfxPanel = JFXPanel()
 
+    var activeStory: Story? = null
+    var viewingComments = true
+
     init {
 
         val frame = JFrame("Hacker News")
@@ -109,6 +115,16 @@ class App : PubSub.Subscriber {
 
         storyList.selectedIndex = 0
         storyList.setCellRenderer(StoryCellRenderer())
+
+        contentToggleButton.addActionListener {
+            if (activeStory != null) {
+                if (viewingComments) {
+                    showPage(activeStory)
+                } else {
+                    showComments(activeStory)
+                }
+            }
+        }
 
         frame.revalidate()
 
@@ -163,6 +179,8 @@ class App : PubSub.Subscriber {
     }
 
     fun changeActiveStory(story: Story) {
+        activeStory = story
+
         userLabel.text = "Posted by: ${story.user}"
         pointsLabel.text = "Points: ${story.points}"
         storyTimeLabel.text = "Time: ${story.time}"
@@ -171,23 +189,47 @@ class App : PubSub.Subscriber {
             storyURLLabel.text = story.url
         }
 
-//        Platform.runLater({
-//            val webView = WebView()
-//            jfxPanel.scene = Scene(webView)
-//            webView.engine.load(story.url)
-//        })
+        showComments(activeStory)
+    }
 
-        storyPanel.removeAll()
-        storyPanel.add(getCommentsPanel(story))
-        if (story.bigIcon != null) {
-            storyIconPanel.icon = ImageIcon(story.bigIcon)
-        } else {
-            storyIconPanel.icon = story.favicon
+    fun showComments(story: Story?) {
+        if (story != null) {
+            viewingComments = true
+            contentToggleButton.text = "View Page"
+
+            storyPanel.removeAll()
+            storyPanel.add(getCommentsPanel(story))
+            if (story.bigIcon != null) {
+                storyIconPanel.icon = ImageIcon(story.bigIcon)
+            } else {
+                storyIconPanel.icon = story.favicon
+            }
+            storyIconPanel.preferredSize = Dimension(storyIconPanel.icon.iconWidth+6, storyIconPanel.icon.iconHeight)
+            storyIconPanel.border = BorderFactory.createEmptyBorder(0, 3, 0, 3)
+            headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
+            loadComments(story)
         }
-        storyIconPanel.preferredSize = Dimension(storyIconPanel.icon.iconWidth+6, storyIconPanel.icon.iconHeight)
-        storyIconPanel.border = BorderFactory.createEmptyBorder(0, 3, 0, 3)
-        headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
-        loadComments(story)
+    }
+
+    fun showPage(story: Story?) {
+        if (story != null) {
+            viewingComments = false
+            contentToggleButton.text = "View Comments"
+            cancelCommentLoading()
+
+            storyPanel.removeAll()
+            storyPanel.add(jfxPanel)
+
+            Platform.runLater {
+                val webView = WebView()
+                jfxPanel.scene = Scene(webView)
+                webView!!.engine.load(story.url)
+            }
+
+            storyPanel.revalidate()
+        } else {
+            println("Tried showing page but story was null")
+        }
     }
 
     override fun messageArrived(eventName: String, data: Any?) {
@@ -205,7 +247,7 @@ class App : PubSub.Subscriber {
             if (story.kids != null) {
             var index = 0
             val iter = story.kids.iterator()
-            while(iter.hasNext()) {
+            while(iter.hasNext() && viewingComments) {
                 val commentId = iter.next().asInt
                 val address = "$index"
                 loadCommentAux(Comment(getItem(commentId), address), address)
@@ -220,7 +262,7 @@ class App : PubSub.Subscriber {
         if (comment.kids != null) {
             var index = 0
             val iter = comment.kids.iterator()
-            while(iter.hasNext()) {
+            while(iter.hasNext() && viewingComments) {
                 val commentId = iter.next().asInt
                 val address = treeAddress+";$index"
                 loadCommentAux(Comment(getItem(commentId), address), address)
@@ -230,18 +272,30 @@ class App : PubSub.Subscriber {
     }
 
     fun commentArrived(comment: Comment, treeAddress: String) {
+        if (!viewingComments)
+            return
+
         addNodeAtAddress(DefaultMutableTreeNode(comment), comment.treeAddress)
 
         commentsProgressBar.value = ++loadedCommentCount
 
-        if (loadedCommentCount == commentsProgressBar.maximum) {
+        if (loadedCommentCount >= commentsProgressBar.maximum) {
             val parent = commentsProgressBar.parent
-            parent.remove(commentsProgressBar)
-            parent.revalidate()
+            if (parent != null) {
+                parent.remove(commentsProgressBar)
+                parent.revalidate()
+            }
         }
     }
 
+    fun cancelCommentLoading() {
+        loadedCommentCount = commentsProgressBar.maximum
+    }
+
     fun addNodeAtAddress(node: DefaultMutableTreeNode, address: String) {
+        if (!viewingComments)
+            return
+
         val addressArray = address.split(";")
         var parentNode = commentTreeRoot
         for ((index, addressComponent) in addressArray.withIndex()) {
@@ -249,12 +303,16 @@ class App : PubSub.Subscriber {
             // Don't use the last component in the addressArray since that's the index
             // which the child should be added at
             if (index < addressArray.size - 1) {
-                parentNode = parentNode.getChildAt(Integer.parseInt("$addressComponent")) as DefaultMutableTreeNode
+                val childIndex = Integer.parseInt("$addressComponent")
+                if (childIndex < parentNode.childCount) {
+                    parentNode = parentNode.getChildAt(childIndex) as DefaultMutableTreeNode
+                }
             }
 
         }
 
-        (commentTree.model as DefaultTreeModel).insertNodeInto(node, parentNode, Integer.parseInt(addressArray[addressArray.size-1]))
+        val childIndex = Integer.parseInt(addressArray[addressArray.size-1])
+        (commentTree.model as DefaultTreeModel).insertNodeInto(node, parentNode, childIndex)
     }
 
     fun getCommentsPanel(story: Story) : JPanel {
@@ -377,6 +435,11 @@ class App : PubSub.Subscriber {
             }
 
             val comment = value.userObject as Comment
+
+            var originalCommentText = comment.text
+            if (originalCommentText == null)
+                originalCommentText = ""
+
             val panel = JPanel()
             panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
             panel.background = Color(200, 200, 255)
@@ -392,7 +455,7 @@ class App : PubSub.Subscriber {
             //the width of the html rendering JTextPane without also limiting the height
             var text = ""
             var index = 0
-            val words = comment.text!!.split(" ")
+            val words = originalCommentText.split(" ")
             for (word in words) {
                 if (word.indexOf("<br>") != -1 || word.indexOf("</p>") != -1 || word.indexOf("</pre>") != -1) {
                     index = 0
