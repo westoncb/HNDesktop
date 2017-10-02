@@ -442,7 +442,7 @@ class App : PubSub.Subscriber {
 
             val panel = JPanel()
             panel.layout = BoxLayout(panel, BoxLayout.Y_AXIS)
-            panel.background = Color(200, 200, 255)
+            panel.background = Color(225, 225, 235)
 
             val metaDataLabel = JLabel(comment.user + " " + comment.time)
             metaDataLabel.foreground = Color(60, 60, 60)
