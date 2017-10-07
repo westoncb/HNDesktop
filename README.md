@@ -1,7 +1,11 @@
 # HNDesktop
 A (Java) Swing desktop application Hacker News client written in Kotlin. I think it would be funny to make it actually good—contribute if you think so too. Or if you think the world actually needs this, that's okay too.
 
-More project info: http://symbolflux.com/projects/hndesktop
+More background on the project here (and a **video** of it running!): http://symbolflux.com/projects/hndesktop
+
+To run: unfortunately, the only way I know is to manually set up an IntelliJ Kotlin project, import the source, add all the jars in the 'lib' folder.
+
+Check out the 'Issues' section here for some details on what's broken, and some enhancements ideas.
 
 ![Screenshot](https://github.com/westoncb/HNDesktop/blob/master/screenshot.png?raw=true "Optional Title")
 
