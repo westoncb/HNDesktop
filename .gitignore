@@ -4,3 +4,4 @@
 *.iws
 
 out/
+target/

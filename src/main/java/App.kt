@@ -40,9 +40,9 @@ import javax.swing.text.html.HTMLEditorKit
 class App : PubSub.Subscriber {
     companion object {
         init {
-                MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
-                UIManager.setLookAndFeel(MetalLookAndFeel())
-//            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
+//                MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
+//                UIManager.setLookAndFeel(MetalLookAndFeel())
+            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
         }
     }
 
