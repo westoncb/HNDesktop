@@ -10,6 +10,8 @@ To build/run:
 3) run `mvn package` (this builds the project with Maven)
 4) `java -jar target/HNDesktop-1.0-SNAPSHOT-jar-with-dependencies.jar`
 
+Note: if you are using OpenJDK, you need to install JavaFX before running `mvn package`. This should do it: `apt install openjfx`
+
 Check out the 'Issues' section here for some details on what's broken, and some enhancements ideas.
 
 ![Screenshot](https://github.com/westoncb/HNDesktop/blob/master/screenshot.png?raw=true "Optional Title")
