@@ -41,8 +41,11 @@ class App : PubSub.Subscriber {
     companion object {
         init {
 //                MetalLookAndFeel.setCurrentTheme(DefaultMetalTheme())
+//            UIManager.put("swing.boldMetal", false)
 //                UIManager.setLookAndFeel(MetalLookAndFeel())
-            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
+            com.alee.laf.WebLookAndFeel.install()
+//            UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel")
+//            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName())
         }
     }
 
@@ -204,9 +207,11 @@ class App : PubSub.Subscriber {
             } else {
                 storyIconPanel.icon = story.favicon
             }
-            storyIconPanel.preferredSize = Dimension(storyIconPanel.icon.iconWidth+6, storyIconPanel.icon.iconHeight)
+            if (storyIconPanel.icon != null) {
+                storyIconPanel.preferredSize = Dimension(storyIconPanel.icon.iconWidth+6, storyIconPanel.icon.iconHeight)
+                headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
+            }
             storyIconPanel.border = BorderFactory.createEmptyBorder(0, 3, 0, 3)
-            headlinePanel.preferredSize = Dimension(storyControlPanel.size.width, Math.max(32, storyIconPanel.icon.iconHeight))
             loadComments(story)
         }
     }
