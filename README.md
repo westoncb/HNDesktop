@@ -5,7 +5,7 @@ More background on the project here (and a **video** of it running!): http://sym
 
 To build/run:
 
-1) Install Maven (`brew install maven` or `sudo apt-get install mvn`)
+1) Install Maven (`brew install maven` or `sudo apt-get install maven`)
 2) cd to HNDesktop repo root
 3) run `mvn package` (this builds the project with Maven)
 4) `java -jar target/HNDesktop-1.0-SNAPSHOT-jar-with-dependencies.jar`
